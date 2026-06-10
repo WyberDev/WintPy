@@ -1,4 +1,4 @@
-# WintPy Main v1.0.4
+# WintPy Main v1.0.5
 # Setup ────────────────────────────────────────────
 import os, platform, time, socket, urllib.request, json, subprocess, sys, shutil, termios, tty
 
@@ -8,24 +8,28 @@ os.chdir(carpeta_actual)
 tiempo_en_iniciar = time.time()
 os.makedirs("packages", exist_ok=True)
 os.makedirs("users", exist_ok=True)
-
 usuarioscarpeta = "users"
 contenido_usuario = os.listdir(usuarioscarpeta)
 dev = False
+CONFIG_FILE = ".config.json"
 archivo_en_portapapeles = ""
 newuser = True
 skipuser = False
 newuserfrommk = False
+estilo_actual = "> "
 working = True
 passtologout = False
 commandlogout = False
-innovatorrunning = False
 user1name = ""
 users = []
+# innovatorrunning = False
 if len(contenido_usuario) > 0:
     newuser = False
 de = "Consola"
-
+CONFIG = {
+    "cursor_type_config": "\033[1 q",
+    "prompt_type_config": "> "
+}
 # Boot ─────────────────────────────────────────────
 
 print("¡Bienvenido a \033[34mWint\033[33mPy\033[33m\033[0m!")
@@ -59,11 +63,11 @@ print("Escribe \033[35m--help\033[0m para ayuda.")
 
 SANDBOX_ROOT = os.getcwd()
 sandbox_activo = True
-carpeta_padre = os.path.abspath(os.path.join(os.getcwd(), ".."))
+carpeta_no_raiz = os.path.abspath(os.path.join(os.getcwd(), ".."))
 # print(os.path.abspath(os.path.join(os.getcwd(), "..")))
 
 while sandbox_activo == False:
-    carpeta_padre = False
+    carpeta_no_raiz = False
 
 # Colors ───────────────────────────────────────────
 
@@ -102,10 +106,13 @@ wintpy_logo = fr"""
     {bl}...........{am}/__/{bl}..............
     {re}
     """
-
 commands = ["--help", "mkdir", "mkfle", "rmdir", "rm", "cd", "cp", "pt", "ls",
                 "edit", "exit", "clear", "refetch", "logout", "devmode", "mkuser",
-                "pkg -list", "pkg -remove", "exec", "disa", "ensa"]
+                "pkg -list", "pkg -remove", "exec", "disa", "ensa", "style -h", "style -cursor",
+                "style -cmdl"
+                ]
+
+routecmdl = os.sep.join(os.getcwd().split(os.sep)[-2:])
 
 # Functions ────────────────────────────────────────
 
@@ -183,10 +190,8 @@ def descargar_paquete(nombre_paquete):
 
 def cp():
     global archivo_en_portapapeles
-    # El usuario puede ingresar una ruta completa o solo el nombre si está en la misma carpeta
     ruta_origen = input("Introduce la ruta completa del archivo a copiar:\n> ")
     
-    # os.path.abspath convierte cualquier ruta en la ruta real completa de tu sistema
     ruta_absoluta = os.path.abspath(ruta_origen)
     
     if os.path.exists(ruta_absoluta):
@@ -229,11 +234,9 @@ def pt():
         print(f"Ocurrió un error inesperado: {e}")
 
 def userscanning(usuarioscarpeta):
-    # Si la ruta no existe, devuelve el array vacío directamente para evitar errores
     if not os.path.exists(usuarioscarpeta):
         return []
-    
-    # Escanea, filtra que sean carpetas (y no archivos u ocultas) y lo mete al array
+
     return [f.name for f in os.scandir(usuarioscarpeta) if f.is_dir() and not f.name.startswith('.')]
 
 def chequear_reqs(ruta_app):
@@ -246,8 +249,7 @@ def chequear_reqs(ruta_app):
 
     faltan = []
     for r in reqs:
-        try: 
-            # RASTREADOR 2: Ver si Python cree que ya lo tiene
+        try:
             __import__(r.lower())
         except ImportError: 
             faltan.append(r)
@@ -277,7 +279,6 @@ def buscar_sugerencia(texto_actual):
     return ""
 
 def better_input(prompt="> "):
-    """Captura las teclas una a una con autocompletado estilo Fish corregido."""
     print(prompt, end="", flush=True)
     entrada = ""
     
@@ -299,11 +300,7 @@ def better_input(prompt="> "):
         elif codigo == 127:  # backspace
             if len(entrada) > 0:
                 entrada = entrada[:-1]
-                
-#        elif codigo == 3:  # CTRL + C
-#            print("\n\n[ Proceso interrumpido. Saliendo de WintPy... ]")
-#            sys.exit(0)
-                
+
         elif codigo == 27:  # escape
             siguiente1 = sys.stdin.read(1)
             siguiente2 = sys.stdin.read(1)
@@ -326,12 +323,33 @@ def better_input(prompt="> "):
             
     return entrada
 
+def inicializar_sistema_config():
+    global CONFIG
+    if os.path.exists(CONFIG_FILE):
+        try:
+            with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+                datos_guardados = json.load(f)
+                CONFIG.update(datos_guardados)
+        except Exception:
+            print("\033[33m[ ¡Aviso! El archivo de configuración estaba corrupto. ]")
+            print("[ Tus preferencias se han restablecido a los valores por defecto. ]\033[0m\n")
+            guardar_conf()
+
+def guardar_conf():
+    try:
+        with open(CONFIG_FILE, "w", encoding="utf-8") as f:
+            json.dump(CONFIG, f, indent=4)
+    except Exception as e:
+        print(f"[ Error al escribir en el disco: {e} ]")
+
 
 # Usage ────────────────────────────────────────────
+inicializar_sistema_config()
+estilo_actual = CONFIG["prompt_type_config"]
 while working == True:
     passtologout = False
 
-    comando = better_input("> ").lower()
+    comando = better_input(estilo_actual).lower()
     if comando == "--help":
         print("\033[33m--help = Muestra esta ventana.\033[0m")
         print("mkdir = Crea un directorio.")
@@ -354,10 +372,88 @@ while working == True:
         print("exec = Ejecuta una app instalada.")
         print("edit = Editar un archivo.")
         print("devmode = Permite comandos especiales solo para desarrolladores.")
+        print("style -h = Muestra opciones de personalización para WintPy")
 
     elif comando == "devmode":
         dev = True
         print("Comandos para desarrolladores activados, escibe '-d' para ver más comandos.")
+
+    elif comando == "style -h":
+        print("style -h = Muestra esta ventana")
+        print("style -cursor = Muestra opciones del cursor de la terminal.")
+        print("style -cmdl = Muestra opciones de la línea de comandos.")
+
+    elif comando == "style -cursor":
+        print("Tipos de cursor:")
+        print("1. Bloque parpadeante")
+        print("2. Bloque fijo")
+        print("3. Subrayado parpadeante")
+        print("4. Subrayado fijo")
+        print("5. Barra vertical parpadeante")
+        print("6. Barra vertical fija")
+        
+        cursor_choose = input("Aplicar un cursor (1-6 o Q para cancelar): ").strip()
+        
+        match cursor_choose:
+            case "1":
+                CONFIG["tipo_cursor"] = "\033[1 q"
+            case "2":
+                CONFIG["tipo_cursor"] = "\033[2 q"
+            case "3":
+                CONFIG["tipo_cursor"] = "\033[3 q"
+            case "4":
+                CONFIG["tipo_cursor"] = "\033[4 q"
+            case "5":
+                CONFIG["tipo_cursor"] = "\033[5 q"
+            case "6":
+                CONFIG["tipo_cursor"] = "\033[6 q"
+            case "Q" | "q":
+                print("Operación cancelada.")
+                continue
+            case _:
+                print("Cursor no encontrado.")
+                continue
+
+        print(CONFIG["tipo_cursor"], end="", flush=True)
+        guardar_conf()
+
+    elif comando == "style -cmdl":
+        print("Estilos de línea:")
+        print("Estilo 1. > ejemplo")
+        print(f"Estilo 2. {routecmdl}@{socket.gethostname()}:")
+        print("Estilo 3. λ ~")
+        print("Tu propio estilo (escribe myown)")
+        
+        choose_cmdl = input("Elige un estilo (Estilo 1/2/3/myown): ").strip()
+        
+        match choose_cmdl:
+            case "Estilo 1":
+                CONFIG["prompt_type_config"] = "> "
+                guardar_conf()
+                estilo_actual = CONFIG["prompt_type_config"]
+                print("Estilo cambiado y guardado: >")
+                
+            case "Estilo 2":
+                CONFIG["prompt_type_config"] = f"{routecmdl}@{socket.gethostname()}: "
+                guardar_conf()
+                estilo_actual = CONFIG["prompt_type_config"]
+                print(f"Estilo cambiado y guardado: {estilo_actual}")
+                
+            case "Estilo 3":
+                CONFIG["prompt_type_config"] = "λ ~ "
+                guardar_conf()
+                estilo_actual = CONFIG["prompt_type_config"]
+                print("Estilo cambiado y guardado: λ ~")
+                
+            case "myown":
+                nuevo_estilo = input("Escribe tu estilo (deja un espacio al final): ")
+                CONFIG["prompt_type_config"] = nuevo_estilo
+                guardar_conf()
+                estilo_actual = CONFIG["prompt_type_config"]
+                print(f"Estilo cambiado y guardado a: {estilo_actual}")
+                
+            case _:
+                print("Opción no válida.")
 
     elif comando == "-d":
         if dev == False:
@@ -423,9 +519,9 @@ while working == True:
             print("cd: El directorio no existe.")
     
     elif comando == "cd ..":    
-        carpeta_padre = os.path.abspath(os.path.join(os.getcwd(), ".."))
+        carpeta_no_raiz = os.path.abspath(os.path.join(os.getcwd(), ".."))
 
-        if sandbox_activo and not carpeta_padre.startswith(SANDBOX_ROOT):
+        if sandbox_activo and not carpeta_no_raiz.startswith(SANDBOX_ROOT):
             print("cd: no se puede retroceder más")
         else:
             try:
@@ -512,7 +608,7 @@ while working == True:
         elif sandbox_activo == False:
             os.chdir(carpeta_actual)
             sandbox_activo = True
-            carpeta_padre = os.path.abspath(os.path.join(os.getcwd(), ".."))
+            carpeta_no_raiz = os.path.abspath(os.path.join(os.getcwd(), ".."))
             print("Sandbox activado de vuelta.")  
 
     elif comando == "pkg -list":
@@ -642,7 +738,7 @@ while working == True:
             texto_uptime = f"{segundos} seg"
             
         info = [
-            "\033[34mWint\033[33mPy\033[0m OS 1.0.4 Main",
+            "\033[34mWint\033[33mPy\033[0m OS 1.0.5",
             "-------------------------",
             f"SO Base: {platform.system()}",
             f"Nombre del usuario: {socket.gethostname()}",
