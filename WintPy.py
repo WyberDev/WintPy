@@ -1,6 +1,6 @@
-# WintPy Main v1.0.5
+# WintPy Main v1.0.6
 # Setup ────────────────────────────────────────────
-import os, platform, time, socket, urllib.request, json, subprocess, sys, shutil, termios, tty
+import os, platform, time, socket, urllib.request, json, subprocess, sys, shutil, termios, tty, random
 
 py_location = os.path.dirname(os.path.abspath(__file__))
 carpeta_actual = os.path.dirname(os.path.abspath(__file__))
@@ -22,97 +22,13 @@ passtologout = False
 commandlogout = False
 user1name = ""
 users = []
-# innovatorrunning = False
 if len(contenido_usuario) > 0:
     newuser = False
 de = "Consola"
 CONFIG = {
-    "cursor_type_config": "\033[1 q",
+    "tipo_cursor": "\033[1 q",
     "prompt_type_config": "> "
 }
-# Boot ─────────────────────────────────────────────
-
-print("¡Bienvenido a \033[34mWint\033[33mPy\033[33m\033[0m!")
-if newuser == True:
-    print("¿Es tu primera vez? ¿Quieres crear un usuario? (Escribe G para entrar como invitado, S para no mostrar esto la próxima vez.)")
-    user1name = input("\033[33mNombre del usuario: \033[0m")
-    if user1name == "G":
-        newuser = False
-        print("Entrando como invitado")
-
-    elif user1name == "S":
-        print("Entrando como invitado")
-        print("En caso de que quiera crear un usuario, \033[033mhazlo con mkuser\033[0m")
-        skipuser = True
-        newuser = False
-
-    elif user1name != "G":
-        users.append(user1name)
-        make_folder_user = os.path.join(usuarioscarpeta, user1name)
-        package_user_folder = os.path.join(make_folder_user, "packages")
-        personalthings = input("¿Deseas integrar carpetas de paquetes para el usuario? (si / no) ").lower()
-        if personalthings == "si":
-            os.makedirs(make_folder_user, exist_ok=True)
-            os.makedirs(package_user_folder, exist_ok=True)
-        elif personalthings == "no":
-            os.makedirs(make_folder_user, exist_ok=True)
-
-print("Escribe \033[35m--help\033[0m para ayuda.")
-
-# Sandbox ──────────────────────────────────────────
-
-SANDBOX_ROOT = os.getcwd()
-sandbox_activo = True
-carpeta_no_raiz = os.path.abspath(os.path.join(os.getcwd(), ".."))
-# print(os.path.abspath(os.path.join(os.getcwd(), "..")))
-
-while sandbox_activo == False:
-    carpeta_no_raiz = False
-
-# Colors ───────────────────────────────────────────
-
-# RESET = "\033[0m"
-# ROJO = "\033[31m"
-# VERDE = "\033[32m"
-# AMARILLO = "\033[33m"
-# AZUL = "\033[34m"
-# MAGENTA = "\033[35m"
-# CIAN = "\033[36m"
-# BLANCO = "\033[37m"
-# GRIS = "\033[90m"
-
-re = "\033[0m"
-ro = "\033[31m"
-ve = "\033[32m"
-az = "\033[34m"
-am = "\033[33m"
-ma = "\033[35m"
-ci = "\033[36m"
-bl = "\033[37m"
-gr = "\033[90m"
-
-# Misc ─────────────────────────────────────────────
-
-wintpy_logo = fr"""
-    {bl}    ..................{az}__{am}____{bl}.....
-    {bl}..............{az}__{bl}.{az}/{bl}.{am}___oo\{bl}....
-    {bl}..{az}___{bl}........{az}/##/{bl}.{am}/s  \oo\{bl}...
-    {bl}..{az}\##\{bl}..{az}/\{bl}..{az}/##/{bl}.{am}/ss__/oo/{bl}...
-    {bl}...{az}\##\/##\/##/{bl}.{am}/##/____/{bl}....
-    {bl}....{az}\########/{bl}.{am}/dd/{bl}..........
-    .....{az}\##/\##/{bl}.{am}/dd/{bl}...........
-    ......{az}\/{bl}..{az}\/{bl}.{am}/dd/{bl}............
-    ............{am}/dd/{bl}.............
-    {bl}...........{am}/__/{bl}..............
-    {re}
-    """
-commands = ["--help", "mkdir", "mkfle", "rmdir", "rm", "cd", "cp", "pt", "ls",
-                "edit", "exit", "clear", "refetch", "logout", "devmode", "mkuser",
-                "pkg -list", "pkg -remove", "exec", "disa", "ensa", "style -h", "style -cursor",
-                "style -cmdl"
-                ]
-
-routecmdl = os.sep.join(os.getcwd().split(os.sep)[-2:])
 
 # Functions ────────────────────────────────────────
 
@@ -128,48 +44,47 @@ def menu(lista_paquetes):
     if not lista_paquetes:
         print("\nNo se encontraron paquetes en el repositorio.")
         return None
-        
-    print("\n📦 PAQUETES DISPONIBLES (Q para cancelar):")
+
+    print("\nPAQUETES DISPONIBLES (Q para cancelar):")
     print("-" * 30)
     
     for i, pkg in enumerate(lista_paquetes, start=1):
         print(f" {i}. {pkg}")
     print("-" * 30)
-    
+
     while True:
         opcion = input("Elige un número para instalar (o 'q' para cancelar): ").strip()
-        
+
         if opcion.lower() == 'q':
             print("❌ Operación cancelada por el usuario.")
             return None
-            
+
         if opcion.isdigit():
             numero = int(opcion)
             if 1 <= numero <= len(lista_paquetes):
                 return lista_paquetes[numero - 1]
-                
-        print("⚠️ Opción inválida. Por favor, introduce un número de la lista.")
+
+        print("Opción inválida. Por favor, introduce un número de la lista.")
 
 def descargar_paquete(nombre_paquete):
     nombre_paquete = str(nombre_paquete).strip()
     print(f"Conectando para instalar: {nombre_paquete}...")
-    
+
     carpeta_destino = os.path.join("packages", nombre_paquete)
     os.makedirs(carpeta_destino, exist_ok=True)
-    
+
     base_url_raw = f"https://raw.githubusercontent.com/WyberDev/WintPy-Packages-Repository/main/{nombre_paquete}"
-    
+
     url_json = f"{base_url_raw}/info.json"
     ruta_json_local = os.path.join(carpeta_destino, "info.json")
-    
+
     try:
         urllib.request.urlretrieve(url_json, ruta_json_local)
-        
+
         with open(ruta_json_local, "r", encoding="utf-8") as f:
             configuracion = json.load(f)
-        
+
         nombre_archivo_py = configuracion.get("main_file", "main.py").strip()
-#        print(f" -> Detectado archivo principal en JSON: {nombre_archivo_py}")
         
         url_script_py = f"{base_url_raw}/{nombre_archivo_py}"
         ruta_py_local = os.path.join(carpeta_destino, nombre_archivo_py)
@@ -186,7 +101,7 @@ def descargar_paquete(nombre_paquete):
         print(f"¡Paquete '{nombre_paquete}' instalado con éxito!")
         
     except Exception as e:
-        print(f"❌ Error durante la descarga de archivos: {e}")
+        print(f"Error durante la descarga de archivos: {e}")
 
 def cp():
     global archivo_en_portapapeles
@@ -256,7 +171,7 @@ def chequear_reqs(ruta_app):
 
     if not faltan: return True
 
-    print(f"⚠️ Faltan requisitos: {faltan}")
+    print(f"Faltan requisitos: {faltan}")
     if input("¿Instalar? (s/n): ").lower() not in ['s', 'si', 'y']: return False
 
     es_arch = os.path.exists("/etc/arch-release") or "arch" in platform.release().lower()
@@ -342,138 +257,219 @@ def guardar_conf():
     except Exception as e:
         print(f"[ Error al escribir en el disco: {e} ]")
 
+# Boot ─────────────────────────────────────────────
+
+print("¡Bienvenido a \033[34mWint\033[33mPy\033[33m\033[0m!")
+if newuser == True:
+    print("¿Es tu primera vez? ¿Quieres crear un usuario? (Escribe -G para entrar como invitado, -S para no mostrar esto la próxima vez.)")
+    user1name = input("\033[33mNombre del usuario: \033[0m")
+    if user1name == "-G":
+        newuser = False
+        print("Entrando como invitado")
+
+    elif user1name == "-S":
+        print("Entrando como invitado")
+        print("En caso de que quiera crear un usuario, \033[033mhazlo con mkuser\033[0m")
+        skipuser = True
+        newuser = False
+        guardar_conf()
+
+    elif user1name != "-G":
+        users.append(user1name)
+        make_folder_user = os.path.join(usuarioscarpeta, user1name)
+        package_user_folder = os.path.join(make_folder_user, "packages")
+        personalthings = input("¿Deseas integrar carpetas de paquetes para el usuario? (si / no) ").lower()
+        if personalthings == "si":
+            os.makedirs(make_folder_user, exist_ok=True)
+            os.makedirs(package_user_folder, exist_ok=True)
+        elif personalthings == "no":
+            os.makedirs(make_folder_user, exist_ok=True)
+
+print("Escribe \033[35m--help\033[0m para ayuda.")
+
+# Sandbox ──────────────────────────────────────────
+
+SANDBOX_ROOT = os.getcwd()
+sandbox_activo = True
+carpeta_no_raiz = os.path.abspath(os.path.join(os.getcwd(), ".."))
+
+while sandbox_activo == False:
+    carpeta_no_raiz = False
+
+# Colors ───────────────────────────────────────────
+
+re = "\033[0m"
+ro = "\033[31m"
+ve = "\033[32m"
+az = "\033[34m"
+am = "\033[33m"
+ma = "\033[35m"
+ci = "\033[36m"
+bl = "\033[37m"
+gr = "\033[90m"
+
+# Misc ─────────────────────────────────────────────
+
+wintpy_logo = fr"""
+    {bl}    ...................{az}__{am}____{bl}.....
+    {bl}...............{az}__{bl}.{az}/{bl}.{am}___oo\{bl}....
+    {bl}...{az}___{bl}........{az}/##/{bl}.{am}/s  \oo\{bl}...
+    {bl}...{az}\##\{bl}..{az}/\{bl}..{az}/##/{bl}.{am}/ss__/oo/{bl}...
+    {bl}....{az}\##\/##\/##/{bl}.{am}/##/____/{bl}....
+    {bl}.....{az}\########/{bl}.{am}/dd/{bl}..........
+    ......{az}\##/\##/{bl}.{am}/dd/{bl}...........
+    .......{az}\/{bl}..{az}\/{bl}.{am}/dd/{bl}............
+    .............{am}/dd/{bl}.............
+    {bl}............{am}/__/{bl}..............
+    {re}
+    """
+commands = ["--help", "mkdir", "mkfle", "rmdir", "rm", "cd", "cp", "pt", "ls",
+                "edit", "exit", "clear", "refetch", "logout", "devmode", "mkuser",
+                "pkg -list", "pkg -remove", "exec", "echo", "pwd", "disa", "ensa", "style -h", "style -cursor",
+                "style -cmdl"
+                ]
+
+routecmdl = os.sep.join(os.getcwd().split(os.sep)[-2:])
+
+mensajes = ["Hola mundo!", "¡Compatible con Android!",
+                "El pastel es una mentira", "Funciona en mi máquina.", "CTRL + C + CTRL + V"]
 
 # Usage ────────────────────────────────────────────
 inicializar_sistema_config()
 estilo_actual = CONFIG["prompt_type_config"]
+random.choice(mensajes)
+print(f"{am}Mensaje del día: {random.choice(mensajes)}{re}")
 while working == True:
     passtologout = False
 
     comando = better_input(estilo_actual).lower()
-    if comando == "--help":
-        print("\033[33m--help = Muestra esta ventana.\033[0m")
-        print("mkdir = Crea un directorio.")
-        print("rmdir = Elimina un directorio.")
-        print("mkfle = Crea un archivo.")
-        print("mkuser = Crea un usuario.")
-        print("rm = Elimina un archivo.")
-        print("cd = Abrir un directorio.")
-        print("cp = Copia un archivo.")
-        print("pt = Pega un archivo.")
-        print("ls = Muestra los directorios y archivos en los que estás.")
-        print("exit = Salir.")
-        print("clear = Limpia todo el texto.")
-        print("refetch = Muestra información del sistema y hardware.")
-        print("chuser = Cambiar de usuario.")
-        print("logout = Cerrar sesión.")
-        print("disa = \033[31m(¡No recomendado!)\033[0m Desactiva el sandboxing y permite interactuar con el sistema.")
-        print("ensa = Activa el sandbox. \033[90m(Si lo desactivaste anteriormente)\033[0m")
-        print("pkg --help = Mostrar los comandos para los paquetes.")
-        print("exec = Ejecuta una app instalada.")
-        print("edit = Editar un archivo.")
-        print("devmode = Permite comandos especiales solo para desarrolladores.")
-        print("style -h = Muestra opciones de personalización para WintPy")
+    match comando:
+        case "--help":
+            print("\033[33m--help = Muestra esta ventana.\033[0m")
+            print("mkdir = Crea un directorio.")
+            print("rmdir = Elimina un directorio.")
+            print("mkfle = Crea un archivo.")
+            print("mkuser = Crea un usuario.")
+            print("rm = Elimina un archivo.")
+            print("cd = Abrir un directorio.")
+            print("cp = Copia un archivo.")
+            print("pt = Pega un archivo.")
+            print("ls = Muestra los directorios y archivos en los que estás.")
+            print("exit = Salir.")
+            print("clear = Limpia todo el texto.")
+            print("refetch = Muestra información del sistema y hardware.")
+            print("chuser = Cambiar de usuario.")
+            print("logout = Cerrar sesión.")
+            print("echo = Imprime lo que escribes a continuación del comando.")
+            print("pwd = Muestra el directorio en el que estás.")
+            print("disa = \033[31m(¡No recomendado!)\033[0m Desactiva el sandboxing y permite interactuar con el sistema.")
+            print("ensa = Activa el sandbox. \033[90m(Si lo desactivaste anteriormente)\033[0m")
+            print("pkg --help = Mostrar los comandos para los paquetes.")
+            print("exec = Ejecuta una app instalada.")
+            print("edit = Editar un archivo.")
+            print("devmode = Permite comandos especiales solo para desarrolladores.")
+            print("style -h = Muestra opciones de personalización para WintPy")
 
-    elif comando == "devmode":
-        dev = True
-        print("Comandos para desarrolladores activados, escibe '-d' para ver más comandos.")
+        case "devmode":
+            dev = True
+            print("Comandos para desarrolladores activados, escibe '-d' para ver más comandos.")
 
-    elif comando == "style -h":
-        print("style -h = Muestra esta ventana")
-        print("style -cursor = Muestra opciones del cursor de la terminal.")
-        print("style -cmdl = Muestra opciones de la línea de comandos.")
+        case "style -h":
+            print("style -h = Muestra esta ventana")
+            print("style -cursor = Muestra opciones del cursor de la terminal.")
+            print("style -cmdl = Muestra opciones de la línea de comandos.")
 
-    elif comando == "style -cursor":
-        print("Tipos de cursor:")
-        print("1. Bloque parpadeante")
-        print("2. Bloque fijo")
-        print("3. Subrayado parpadeante")
-        print("4. Subrayado fijo")
-        print("5. Barra vertical parpadeante")
-        print("6. Barra vertical fija")
+        case "style -cursor":
+            print("Tipos de cursor:")
+            print("1. Bloque parpadeante")
+            print("2. Bloque fijo")
+            print("3. Subrayado parpadeante")
+            print("4. Subrayado fijo")
+            print("5. Barra vertical parpadeante")
+            print("6. Barra vertical fija")
         
-        cursor_choose = input("Aplicar un cursor (1-6 o Q para cancelar): ").strip()
+            cursor_choose = input("Aplicar un cursor (1-6 o Q para cancelar): ").strip()
         
-        match cursor_choose:
-            case "1":
-                CONFIG["tipo_cursor"] = "\033[1 q"
-            case "2":
-                CONFIG["tipo_cursor"] = "\033[2 q"
-            case "3":
-                CONFIG["tipo_cursor"] = "\033[3 q"
-            case "4":
-                CONFIG["tipo_cursor"] = "\033[4 q"
-            case "5":
-                CONFIG["tipo_cursor"] = "\033[5 q"
-            case "6":
-                CONFIG["tipo_cursor"] = "\033[6 q"
-            case "Q" | "q":
-                print("Operación cancelada.")
+            match cursor_choose:
+                case "1":
+                    CONFIG["tipo_cursor"] = "\033[1 q"
+                case "2":
+                    CONFIG["tipo_cursor"] = "\033[2 q"
+                case "3":
+                    CONFIG["tipo_cursor"] = "\033[3 q"
+                case "4":
+                    CONFIG["tipo_cursor"] = "\033[4 q"
+                case "5":
+                    CONFIG["tipo_cursor"] = "\033[5 q"
+                case "6":
+                    CONFIG["tipo_cursor"] = "\033[6 q"
+                case "Q" | "q":
+                    print("Operación cancelada.")
+                    continue
+                case _:
+                    print("Cursor no encontrado.")
+                    continue
+
+            print(CONFIG["tipo_cursor"], end="", flush=True)
+            guardar_conf()
+
+        case "style -cmdl":
+            print("Estilos de línea:")
+            print("Estilo 1. > ejemplo")
+            print(f"Estilo 2. {routecmdl}@{socket.gethostname()}:")
+            print("Estilo 3. λ ~")
+            print("Tu propio estilo (escribe myown)")
+        
+            choose_cmdl = input("Elige un estilo (Estilo 1/2/3/myown): ").strip()
+        
+            match choose_cmdl:
+                case "1":
+                    CONFIG["prompt_type_config"] = "> "
+                    guardar_conf()
+                    estilo_actual = CONFIG["prompt_type_config"]
+                    print("Estilo cambiado y guardado: >")
+                
+                case "2":
+                    CONFIG["prompt_type_config"] = f"{routecmdl}@{socket.gethostname()}: "
+                    guardar_conf()
+                    estilo_actual = CONFIG["prompt_type_config"]
+                    print(f"Estilo cambiado y guardado: {estilo_actual}")
+                
+                case "3":
+                    CONFIG["prompt_type_config"] = "λ ~ "
+                    guardar_conf()
+                    estilo_actual = CONFIG["prompt_type_config"]
+                    print("Estilo cambiado y guardado: λ ~")
+                
+                case "myown":
+                    nuevo_estilo = input("Escribe tu estilo (deja un espacio al final): ")
+                    CONFIG["prompt_type_config"] = nuevo_estilo
+                    guardar_conf()
+                    estilo_actual = CONFIG["prompt_type_config"]
+                    print(f"Estilo cambiado y guardado a: {estilo_actual}")
+
+                case _:
+                    print("Opción no válida.")
+
+        case "-d":
+            if dev == False:
+                print("devmode no está activado.")
                 continue
-            case _:
-                print("Cursor no encontrado.")
+            else:
+                print("\033[034mautojson\033[0m = Permite autogenerar archivos .json automaticos para facilitar la creación de aplicaciones.")
+
+        case "pkg --help":
+            print("pkg -list = Muestra la lista de paquetes para instalar")
+            print("pkg -remove = Permite desinstalar una aplicación")
+
+        case "autojson":
+            if dev == False:
+                print("devmode no está activado.")
                 continue
-
-        print(CONFIG["tipo_cursor"], end="", flush=True)
-        guardar_conf()
-
-    elif comando == "style -cmdl":
-        print("Estilos de línea:")
-        print("Estilo 1. > ejemplo")
-        print(f"Estilo 2. {routecmdl}@{socket.gethostname()}:")
-        print("Estilo 3. λ ~")
-        print("Tu propio estilo (escribe myown)")
-        
-        choose_cmdl = input("Elige un estilo (Estilo 1/2/3/myown): ").strip()
-        
-        match choose_cmdl:
-            case "Estilo 1":
-                CONFIG["prompt_type_config"] = "> "
-                guardar_conf()
-                estilo_actual = CONFIG["prompt_type_config"]
-                print("Estilo cambiado y guardado: >")
-                
-            case "Estilo 2":
-                CONFIG["prompt_type_config"] = f"{routecmdl}@{socket.gethostname()}: "
-                guardar_conf()
-                estilo_actual = CONFIG["prompt_type_config"]
-                print(f"Estilo cambiado y guardado: {estilo_actual}")
-                
-            case "Estilo 3":
-                CONFIG["prompt_type_config"] = "λ ~ "
-                guardar_conf()
-                estilo_actual = CONFIG["prompt_type_config"]
-                print("Estilo cambiado y guardado: λ ~")
-                
-            case "myown":
-                nuevo_estilo = input("Escribe tu estilo (deja un espacio al final): ")
-                CONFIG["prompt_type_config"] = nuevo_estilo
-                guardar_conf()
-                estilo_actual = CONFIG["prompt_type_config"]
-                print(f"Estilo cambiado y guardado a: {estilo_actual}")
-                
-            case _:
-                print("Opción no válida.")
-
-    elif comando == "-d":
-        if dev == False:
-            print("devmode no está activado.")
-            continue
-        else:
-            print("\033[034mautojson\033[0m = Permite autogenerar archivos .json automaticos para facilitar la creación de aplicaciones.")
-
-    elif comando == "pkg --help":
-        print("pkg -list = Muestra la lista de paquetes para instalar")
-        print("pkg -remove = Permite desinstalar una aplicación")
-
-    elif comando == "autojson":
-        if dev == False:
-            print("devmode no está activado.")
-            continue
-        else:
-            nombre_inicial = input("1. Introduce el nombre del proyecto ('q' para cancelar): ")
-            version = input("2. Introduce la versión del proyecto:  ")
-            archivo_principal = input("3. Introduce el archivo principal (nombre exacto y con formato): ")
+            else:
+                nombre_inicial = input("1. Introduce el nombre del proyecto ('q' para cancelar): ")
+                version = input("2. Introduce la versión del proyecto:  ")
+                archivo_principal = input("3. Introduce el archivo principal (nombre exacto y con formato): ")
 
             datos_json = {
                 "name": nombre_inicial,
@@ -481,80 +477,79 @@ while working == True:
                 "main_file": archivo_principal
             }
         
-        nombre_archivo = "info.json"
-        with open(nombre_archivo, "w", encoding="utf-8") as archivo:
-            json.dump(datos_json, archivo, indent=2, ensure_ascii=False)
+            nombre_archivo = "info.json"
+            with open(nombre_archivo, "w", encoding="utf-8") as archivo:
+                json.dump(datos_json, archivo, indent=2, ensure_ascii=False)
             print(f"\n¡Éxito! El archivo '{nombre_archivo}' ha sido generado automáticamente.")
 
-    elif comando == "cp":
-        cp()
+        case "cp":
+            cp()
 
-    elif comando == "pt":
-        pt()
+        case "pt":
+            pt()
 
-    elif comando == "test":
-        print(userscanning(usuarioscarpeta))
-
-    elif comando == "ls":
-        print(os.listdir())
-    elif comando == "mkdir":
-        carpeta_nueva = input("Nombre del directorio: ")
-        os.mkdir(carpeta_nueva)
-    elif comando == "rmdir":
-        try:
-            remover_carpeta = input("Carpeta a remover: ")
-            os.rmdir(remover_carpeta)
-            print(f"Carpeta '{remover_carpeta}' eliminada con éxito.")
-        except FileNotFoundError:
-            print(f"\033[31mNo se encontró {remover_carpeta}.\033[0m")
-        except OSError:
-            print("El directorio no está vacío.")
-
-    elif comando == "cd":
-        try:
-            ir_a = input("Ir a directorio: ")
-            os.chdir (ir_a)
-            print(f"Ahora estás en: ({os.getcwd()})")
-        except FileNotFoundError:
-            print("cd: El directorio no existe.")
-    
-    elif comando == "cd ..":    
-        carpeta_no_raiz = os.path.abspath(os.path.join(os.getcwd(), ".."))
-
-        if sandbox_activo and not carpeta_no_raiz.startswith(SANDBOX_ROOT):
-            print("cd: no se puede retroceder más")
-        else:
+        case "ls":
+            print(os.listdir())
+        case "mkdir":
+            carpeta_nueva = input("Nombre del directorio: ")
+            os.mkdir(carpeta_nueva)
+        case "rmdir":
             try:
-                os.chdir("..")
+                remover_carpeta = input("Carpeta a remover: ")
+                os.rmdir(remover_carpeta)
+                print(f"Carpeta '{remover_carpeta}' eliminada con éxito.")
             except FileNotFoundError:
-                print("cd: no se puede retroceder más.")
+                print(f"\033[31mNo se encontró {remover_carpeta}.\033[0m")
+            except OSError:
+                print("El directorio no está vacío.")
 
-    elif comando == "exit":
-        print("Cerrando WintPy")
-        break
+        case "pwd":
+            print(f"{os.getcwd()}")
 
-    elif comando == "mkuser":
-        mknewuser = input("Nombre del usuario nuevo (Usa 'q' para cancelar): ")
-        users.append(mknewuser)
-        make_folder_user = os.path.join(usuarioscarpeta, mknewuser)
-        package_user_folder = os.path.join(make_folder_user, "packages")
-        personalthings = input("¿Deseas integrar carpetas de paquetes para el usuario? (si / no) ").lower()
-        if personalthings == "si":
-            os.makedirs(package_user_folder, exist_ok=True)
-        elif personalthings == "no":
-            os.makedirs(make_folder_user, exist_ok=True)
-        newuserfrommk == mknewuser
+        case "cd":
+            try:
+                ir_a = input("Ir a directorio: ")
+                os.chdir (ir_a)
+            except FileNotFoundError:
+                print("cd: El directorio no existe.")
+    
+        case "cd ..":
+            carpeta_no_raiz = os.path.abspath(os.path.join(os.getcwd(), ".."))
 
-    elif comando == "logout":
-        passtologout = True
-        commandlogout = True
-        print("Sesión cerrada (Usa login para volver, exit para salir.)")
+            if sandbox_activo and not carpeta_no_raiz.startswith(SANDBOX_ROOT):
+                print("cd: no se puede retroceder más")
+            else:
+                try:
+                    os.chdir("..")
+                except FileNotFoundError:
+                    print("cd: no se puede retroceder más.")
+
+        case "exit":
+            print("Cerrando WintPy")
+            break
+
+        case "mkuser":
+            mknewuser = input("Nombre del usuario nuevo (Usa 'q' para cancelar): ")
+            users.append(mknewuser)
+            make_folder_user = os.path.join(usuarioscarpeta, mknewuser)
+            package_user_folder = os.path.join(make_folder_user, "packages")
+            personalthings = input("¿Deseas integrar carpetas de paquetes para el usuario? (si / no) ").lower()
+            if personalthings == "si":
+                os.makedirs(package_user_folder, exist_ok=True)
+            elif personalthings == "no":
+                os.makedirs(make_folder_user, exist_ok=True)
+            newuserfrommk == mknewuser
+
+        case "logout":
+            passtologout = True
+            commandlogout = True
+            print("Sesión cerrada (Usa login para volver, exit para salir.)")
                         
-        while True:
-            comandologout = input("> ")
-            if comandologout == "login":
-                print(userscanning(usuarioscarpeta))
-                chooseuserlog = input("¿A que usuario quieres entrar? (Usa 'G' para entrar como invitado) ")
+            while True:
+                comandologout = input("> ")
+                if comandologout == "login":
+                    print(userscanning(usuarioscarpeta))
+                    chooseuserlog = input("¿A que usuario quieres entrar? (Usa 'G' para entrar como invitado) ")
                 
                 if chooseuserlog in users:
                     working = True
@@ -565,195 +560,199 @@ while working == True:
                     working = True
                     passtologout = False
                     print("Sesión iniciada como Invitado.")
-                    break                    
+                    break
+
+                elif comandologout == "exit":
+                    print("Cerrando WintPy")
+                    working = False
+                    break
+
                 else:
                     print("Ese usuario no existe. Usa G para entrar como invitado.")
                     
-            elif comandologout == "exit":
-                print("Cerrando WintPy")
+
+            if passtologout == True:
                 working = False
-                break
-
-        if passtologout == True:
-            working = False
     
-    elif comando == "rm":
-        try:
-            remover = input("Archivo a remover: ")
-            os.remove(remover)
+        case "rm":
+            try:
+                remover = input("Archivo a remover: ")
+                os.remove(remover)
 
-        except FileNotFoundError:
-            print(f"El archivo o carpeta '{remover}' no existe.")
+            except FileNotFoundError:
+                print(f"El archivo o carpeta '{remover}' no existe.")
         
-        except (IsADirectoryError, PermissionError):
-            print(f"'{remover}' es un directorio. Para borrar carpetas completas usa 'rmdir'.")
+            except (IsADirectoryError, PermissionError):
+                print(f"'{remover}' es un directorio. Para borrar carpetas completas usa 'rmdir'.")
         
-        except Exception as e:
-            print(f"No se pudo eliminar: {e}")
+            except Exception as e:
+                print(f"No se pudo eliminar: {e}")
             
-    elif comando == "clear":
-        os.system('cls' if os.name == 'nt' else 'clear')
+        case "clear":
+            os.system('cls' if os.name == 'nt' else 'clear')
 
-    elif comando == "disa":
-        lock1 = input("\033[31mVas a desactivar el sandboxing\033[0m, esto puede ser peligroso ¿Continuar? (Si / No) ").strip()
-        if lock1 == "Si":
-            lock2 = input("¿Estás seguro? ").strip()
-            if lock2 == "Si":
-                sandbox_activo = False
-                print("Sandbox desactivado, ten cuidado")
+        case "disa":
+            lock1 = input("\033[31mVas a desactivar el sandboxing\033[0m, esto puede ser peligroso ¿Continuar? (Si / No) ").strip()
+            if lock1 == "Si":
+                lock2 = input("¿Estás seguro? ").strip()
+                if lock2 == "Si":
+                    sandbox_activo = False
+                    print("Sandbox desactivado, ten cuidado")
 
-    elif comando == "ensa":
-        if sandbox_activo == True:
-            print("El sandbox esta activado")
-        elif sandbox_activo == False:
-            os.chdir(carpeta_actual)
-            sandbox_activo = True
-            carpeta_no_raiz = os.path.abspath(os.path.join(os.getcwd(), ".."))
-            print("Sandbox activado de vuelta.")  
+        case "ensa":
+            if sandbox_activo == True:
+                print("El sandbox esta activado")
+            elif sandbox_activo == False:
+                os.chdir(carpeta_actual)
+                sandbox_activo = True
+                carpeta_no_raiz = os.path.abspath(os.path.join(os.getcwd(), ".."))
+                print("Sandbox activado de vuelta.")  
 
-    elif comando == "pkg -list":
-        try:
-            paquetes_disponibles = obtener_lista_paquetes()
+        case "pkg -list":
+            try:
+                paquetes_disponibles = obtener_lista_paquetes()
+                elegido = menu(paquetes_disponibles)
+                if elegido:
+                    descargar_paquete(elegido)
+            except Exception as e:
+                print(""f"❌ Error en el gestor de paquetes: {e}")
 
-            elegido = menu(paquetes_disponibles)
+        case _ if comando.startswith("run ") or comando.startswith("exec "):
+            try:
+                partes_consola = comando.strip().split()
 
-            print(obtener_lista_paquetes)
-
-            if elegido:
-                descargar_paquete(elegido)
-
-        except Exception as e:
-            print(""f"❌ Error en el gestor de paquetes: {e}")
-
-    elif comando in ("run", "exec") or comando.startswith("run ") or comando.startswith("exec "):
-        try:
-            partes_consola = comando.strip().split()
-
-            if len(partes_consola) < 2:
-                app_elegida = input("¿Qué aplicación deseas ejecutar?: ").strip()
-            else:
-                app_elegida = partes_consola[1].strip()
-            if app_elegida == "innovator":
-                de = "Innovator DE"
-            if not app_elegida:
-                print("No introduciste ningún nombre.")
-            else:
-                ruta_carpeta = os.path.join("packages", app_elegida)
-                archivo_py = f"{app_elegida}.py"
-                ruta_ejecutable = os.path.join(ruta_carpeta, archivo_py)
-                
+                if len(partes_consola) < 2:
+                    app_elegida = input("¿Qué aplicación deseas ejecutar?: ").strip()
+                else:
+                    app_elegida = partes_consola[1].strip()
+                if not app_elegida:
+                    print("No introduciste ningún nombre.")
+                else:
+                    ruta_carpeta = os.path.join("packages", app_elegida)
+                    archivo_py = f"{app_elegida}.py"
+                    ruta_ejecutable = os.path.join(ruta_carpeta, archivo_py)
                 if os.path.exists(ruta_ejecutable):
-                    # 1. PASAR EL FILTRO DE REQUISITOS ANTES DE ARRANCAR
                     if chequear_reqs(ruta_carpeta):
                         print(f"Lanzando {app_elegida}...\n")
                         subprocess.run([sys.executable, ruta_ejecutable])
                         print(f"\nVolviendo a WintPy.")
                     else:
-                        print(f"❌ Lanzamiento cancelado por falta de dependencias.")
+                        print(f"❌ Lanzamiento cancelado por falta de dependencias.")                        
                 else:
                     print(f"❌ Error: No se encontró '{archivo_py}' en 'packages/{app_elegida}/'")
+            except Exception as e:
+                print(f"❌ Error al ejecutar la app: {e}")
 
-        except Exception as e:
-            print(f"❌ Error al ejecutar la app: {e}")
+        case "mkfle":
+            mkfle = input("Nombre del archivo y formato (No poner formato para un archivo simple): ")
+            try:
+                with open(mkfle, "x") as archivo:
+                    pass
+                print("Archivo creado.")      
+            except FileExistsError:
+                print("[Error] Ese archivo ya existe en esta carpeta.")
 
-    elif comando == "mkfle":
-        mkfle = input("Nombre del archivo y formato (No poner formato para un archivo simple): ")
-        try:
-            with open(mkfle, "x") as archivo:
-                pass
-            print("Archivo creado.")      
-        except FileExistsError:
-            print("[Error] Ese archivo ya existe en esta carpeta.")
-
-    elif comando == "pkg -remove":
-        try:
-            ruta_packages = "packages"
+        case "pkg -remove":
+            try:
+                ruta_packages = "packages"
             
-            apps_instaladas = [
-                f for f in os.listdir(ruta_packages) 
-                if os.path.isdir(os.path.join(ruta_packages, f)) and not f.startswith("__")
+                apps_instaladas = [
+                    f for f in os.listdir(ruta_packages) 
+                    if os.path.isdir(os.path.join(ruta_packages, f)) and not f.startswith("__")
+                ]
+        
+                if len(apps_instaladas) == 0:
+                    print("No hay apps instaladas en el sistema.")
+                else:
+  
+                    print(f"\nApps instaladas ({len(apps_instaladas)}):")
+                    print("-" * 30)
+                    for app in apps_instaladas:
+                        print(f" - {app}")
+                    print("-" * 30)
+        
+                    uninstall = input("¿Qué app quieres desinstalar? (pon Q para cancelar): ").strip()
+                    ruta_a_borrar = os.path.join(ruta_packages, uninstall)
+        
+                    if os.path.exists(ruta_a_borrar):
+                        shutil.rmtree(ruta_a_borrar)
+                        print(f"La aplicación '{uninstall}' se desinstaló correctamente.")
+                    
+                    elif uninstall == "Q":
+                        print("Operación cancelada.")
+                        continue
+
+                    else:
+                        print(f"No se encontró '{uninstall}' en el sistema.")
+            
+            except Exception as e:
+                print(f"Ocurrió un error inesperado: {e}")
+
+        case "edit":
+            archivo_elegido = input("Introduce el nombre completo del archivo con su extensión: ")
+            if os.path.exists(archivo_elegido):
+                opcion = input("¿Quieres (A)ñadir texto al final o (S)obrescribirlo por completo? A / S: ")
+                if opcion == "r":
+                    modo = "r"
+                with open(archivo_elegido, "r", encoding="utf-8") as archivo:
+                    print(archivo.read())
+                    print("───────────────────────────────────────────\n")
+                print("───────────────────────────────────────────\n")
+                print("PyEditor 1.0.0")        
+                print("\nEscribe el contenido (Escribe 'FIN' en una línea sola para terminar):")
+                lineas = []
+                while True:
+                    linea = input()
+                    if linea.upper() == "FIN":
+                        break
+                    lineas.append(linea + "\n")
+                with open(archivo_elegido, modo, encoding="utf-8") as archivo:
+                    archivo.writelines(lineas)
+                print(f"\n¡Listo! El archivo '{archivo_elegido}' ha sido actualizado.")
+            else:
+                print("El archivo que introduciste no existe. \033[33m(Crea uno con mkfle)\033[0m")
+                continue
+
+        case _ if comando.startswith("echo "):
+            partes = comando.split(" ", 1)
+            texto = partes[1].strip("'\"")
+            print(texto)
+            if partes > 0:
+                print("Uso del comando: echo <valor>")
+
+        case "refetch":
+            segundos_totales = int(time.time() - tiempo_en_iniciar)
+            minutos = segundos_totales // 60
+            segundos = segundos_totales % 60
+            if minutos > 0:
+                texto_uptime = f"{minutos} min, {segundos} seg"
+            else:
+                texto_uptime = f"{segundos} seg"
+            
+            user = user1name
+            if user1name == "-G" or "-S":
+                user = "Invitado"
+
+            info = [
+                "\033[34mWint\033[33mPy\033[0m OS 1.0.6",
+                f"{gr}==========================={re}",
+                f"SO Base: {platform.system()}",
+                f"Kernel base: {platform.release()}",
+                f"Nombre del usuario: {socket.gethostname()}",
+                f"Uptime: {texto_uptime}",
+                f"Arquitectura: {platform.machine()}",
+                f"Usuario: {user}",
+                f"DE: {de}",
+                f"IP Local: {socket.gethostbyname(socket.gethostname())}",
+                f"{ve}Hola!{re}",
             ]
         
-            if len(apps_instaladas) == 0:
-                print("No hay apps instaladas en el sistema.")
-            else:
-  
-                print(f"\nApps instaladas ({len(apps_instaladas)}):")
-                print("-" * 30)
-                for app in apps_instaladas:
-                    print(f" - {app}")
-                print("-" * 30)
+            lineas_logo = wintpy_logo.strip().split('\n')
         
-                uninstall = input("¿Qué app quieres desinstalar? (pon Q para cancelar): ").strip()
-                ruta_a_borrar = os.path.join(ruta_packages, uninstall)
-        
-                if os.path.exists(ruta_a_borrar):
-                    shutil.rmtree(ruta_a_borrar)
-                    print(f"La aplicación '{uninstall}' se desinstaló correctamente.")
-                    
-                elif uninstall == "Q":
-                    print("Operación cancelada.")
-                    continue
+            for i, linea in enumerate(lineas_logo):
+                texto_info = info[i] if i < len(info) else ""
 
-                else:
-                    print(f"No se encontró '{uninstall}' en el sistema.")
+                print(f"{linea.ljust(40)}   {texto_info}")
             
-        except Exception as e:
-            print(f"Ocurrió un error inesperado: {e}")
-
-    elif comando == "edit":
-        archivo_elegido = input("Introduce el nombre completo del archivo con su extensión: ")
-        if os.path.exists(archivo_elegido):
-            opcion = input("¿Quieres (A)ñadir texto al final o (S)obrescribirlo por completo? A / S: ")
-        if opcion == "r":
-            modo = "r"
-            with open(archivo_elegido, "r", encoding="utf-8") as archivo:
-                print(archivo.read())
-                print("───────────────────────────────────────────\n")
-            print("El archivo que introduciste no existe. \033[33m(Crea uno con mkfle)\033[0m")
-            continue
-        print("───────────────────────────────────────────\n")
-        print("PyEditor 1.0.0")        
-        print("\nEscribe el contenido (Escribe 'FIN' en una línea sola para terminar):")
-        lineas = []
-        while True:
-            linea = input()
-            if linea.upper() == "FIN":
-                break
-            lineas.append(linea + "\n")
-            with open(archivo_elegido, modo, encoding="utf-8") as archivo:
-                archivo.writelines(lineas)
-
-        print(f"\n¡Listo! El archivo '{archivo_elegido}' ha sido actualizado.")
-
-
-
-    elif comando == "refetch":
-        segundos_totales = int(time.time() - tiempo_en_iniciar)
-        minutos = segundos_totales // 60
-        segundos = segundos_totales % 60
-        if minutos > 0:
-            texto_uptime = f"{minutos} min, {segundos} seg"
-        else:
-            texto_uptime = f"{segundos} seg"
-            
-        info = [
-            "\033[34mWint\033[33mPy\033[0m OS 1.0.5",
-            "-------------------------",
-            f"SO Base: {platform.system()}",
-            f"Nombre del usuario: {socket.gethostname()}",
-            f"Uptime: {texto_uptime}",
-            f"Usuario: {user1name}",
-            f"DE: {de}",
-            "\033[32mHola!\033[0m"
-        ]
-        
-        lineas_logo = wintpy_logo.strip().split('\n')
-        
-        for i, linea in enumerate(lineas_logo):
-            texto_info = info[i] if i < len(info) else ""
-            
-            print(f"{linea.ljust(40)}   {texto_info}")
-            
-    else:
-        print("Comando desconocido")
+        case _:
+            print("Comando desconocido")
